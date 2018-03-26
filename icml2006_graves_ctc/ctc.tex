@@ -2,15 +2,13 @@
 \documentclass{ctexart}
 \usepackage{comment}
 
-\setCJKmainfont[BoldFont = Adobe Heiti Std, ItalicFont = Adobe Kaiti Std R]{宋体}
+%\setCJKmainfont[BoldFont = Adobe Heiti Std, ItalicFont = Adobe Kaiti Std R]{宋体}
 % 无衬线字体同上
-\setCJKsansfont[BoldFont = Adobe Heiti Std, ItalicFont = Adobe Kaiti Std R]{宋体}
+%\setCJKsansfont[BoldFont = Adobe Heiti Std, ItalicFont = Adobe Kaiti Std R]{宋体}
 
 % For figures
 \usepackage{graphicx}
 \usepackage{subfigure} 
-
-\usepackage[all]{xy}
 
 % For citations
 \usepackage{natbib}
@@ -44,6 +42,8 @@
 \def\vz{\mathbf{z}}
 \def\vp{\mathbf{p}}
 \def\vq{\mathbf{q}}
+
+\def\defeq{\overset{\mathrm{def}}{=}}
 
 \begin{document} 
 
@@ -94,6 +94,7 @@
 
 目标是用$S$训练一个时序分类器$h:\cX\mapsto\cZ$，最小化某个与任务相关的错误度量，并用它对之前未见过的输入序列进行分类.
 \subsection{标签错误率}
+\label{sec:ler}
 本文中，我们感兴趣的是下述错误度量：给定一个与$S$不相交的测试集$S'\subset\cD_{\cX\times\cZ}$，定义时序分类器$h$的\textbf{标签错误率}(label error rate, LER)为分类和$S'$中目标的归一化编辑距离(normalised edit distance)，即
 \begin{equation}
 	\textit{LER}(h, S') = \frac 1Z \sum_{(\vx, \vz)} \textit{ED}(h(\vx))
@@ -122,6 +123,7 @@ CTC~网络中有一个~softmax~输出层\citep{bridle1990probabilistic}，该层
 	p(\vl|\vx) = \sum_{\pi\in\cB^{-1}(\vl)}p(\pi|\vx).
 \end{equation}
 \subsection{构造分类器}
+\label{sec:classifier}
 有了上面的表述，分类器的输出就应该是输入序列的最概然标注：
 \[h(\vx) = \argmax_{\vl\in L^{\le T}} p(\vl|\vx).\]
 我们采用~HMM~的术语，称寻找这一标注的任务为\textbf{解码}(decoding).可惜，就我们所知没有适用于这一系统的通用、具有易解性的解码算法.不过下面两种近似方法在实践中表现不错.
@@ -155,8 +157,9 @@ CTC~网络中有一个~softmax~输出层\citep{bridle1990probabilistic}，该层
 
 对于某个长度为$r$的序列$\vq$，将其前$p$个和最后$p$个符号分别记为$\vq_{1:p}$和$\vq_{r-p:r}$.接着，定义标注$\vl$的前向变量$\alpha_t(s)$为时刻$t$的全概率，即
 \begin{equation}
+	\label{eq:5}
 	\alpha_t(s)
-	\overset{\mathrm{def}}{=}
+	\defeq
 	\sum_{
 		\substack{
 			\pi\in N^T:\\
@@ -165,8 +168,11 @@ CTC~网络中有一个~softmax~输出层\citep{bridle1990probabilistic}，该层
 	}
 	\prod_{t'=1}^t y_{\pi_{t'}}^{t'}.
 \end{equation}
+我们很快就会看到，$\alpha_t(s)$可由$\alpha_{t-1}(s)$和$\alpha_{t-1}(s-1)$递归求出.
 
-这给出了下面的初始化规则
+为了允许在输出路径中包含空字符，我们考虑经过修改的标签序列$\vl'$，它由在头尾和每两个标签之间增加一个空字符得到.因此，$\vl'$的长为$2|\vl|+1$.计算$\vl'$各前缀的概率时，我们允许空标签和其他标签之间的任意转移，也允许任意\textbf{不同的}非空标签之间的转移.任意前缀只允许以空字符($b$)或$\vl$的第一个字符($\vl_1$)开始.
+
+这样就有了下面的初始化规则
 \begin{equation*}
 	\begin{split}
 		\alpha_1(1) & = y_b^1\\
@@ -176,7 +182,8 @@ CTC~网络中有一个~softmax~输出层\citep{bridle1990probabilistic}，该层
 \end{equation*}
 和递归关系
 \begin{equation}
-\alpha_t(s) = 
+	\label{eq:6}
+	\alpha_t(s) = 
 	\begin{cases}
 		\bar{\alpha}_t(s) y_{\vl_s'}^t
 		\hfill \text{若}~\vl_s' = b~\text{或}~\vl_{s-2}'=\vl_s'\\
@@ -186,18 +193,23 @@ CTC~网络中有一个~softmax~输出层\citep{bridle1990probabilistic}，该层
 \end{equation}
 其中
 \begin{equation}
+	\label{eq:7}
 	\bar{\alpha}_t(s)
-	\overset{\mathrm{def}}{=}
+	\defeq
 	\alpha_{t-1}(s) + \alpha_{t-1}(s-1).
 \end{equation}
+注意到$\alpha_t(s) = 0~\forall s<|\vl'|-2(T-t)-1$，因为这些变量对应于剩余时间步不够完成序列的那些状态（图~3~右上角无连接的圆圈）.此外，$\alpha_t(s) = 0 \forall s<1$.
 
+这样，$\vl$的概率就是$\vl'$在时刻$T$结尾有空字符和无空字符的全概率.
 \begin{equation}
+	\label{eq:8}
 	p(\vl|\vx) = \alpha_T(|\vl'|) + \alpha_T(|\vl'|-1).
 \end{equation}
-
+类似地定义后向变量$\beta_t(s)$为$\vl_{s:|\vl|}$在$t$时刻的全概率.
 \begin{equation}
+	\label{eq:9}
 	\beta_t(s)
-	\overset{\mathrm{def}}{=}
+	\defeq
 	\sum_{
 		\substack{
 			\pi\in N^T:\\
@@ -216,6 +228,7 @@ CTC~网络中有一个~softmax~输出层\citep{bridle1990probabilistic}，该层
 \end{equation*}
 
 \begin{equation}
+	\label{eq:10}
 	\beta_t(s) = 
 	\begin{cases}
 		\bar{\beta}_t(s) y_{\vl_s'}^t
@@ -226,23 +239,38 @@ CTC~网络中有一个~softmax~输出层\citep{bridle1990probabilistic}，该层
 \end{equation}
 其中
 \begin{equation}
+	\label{eq:11}
 	\bar{\beta}_t(s)
-	\overset{\mathrm{def}}{=}
+	\defeq
 	\beta_{t+1}(s) + \beta_{t+1}(s+1).
 \end{equation}
-
+注意，$\beta_t(s) = 0~\forall s > 2t$（图~3~左下角无连接的圆圈）、$\forall s　> |\vl'|$.
+实践中，上述递归很快就会导致计算机发生下溢(underflow).要避免这种情况，一种方式是缩放(rescale)前向和后向变量\citep{rabiner1989tutorial}.如果我们定义
+\[C_t \defeq \sum_s\alpha_t(s), 
+\quad \hat{\alpha}_t(s)\defeq\frac{\alpha_t(s)}{C_t}\]
+并在~\eqref{eq:6}~和~\eqref{eq:7}~的右侧以$\hat{\alpha}$代$\alpha$，前向变量就可保持在可计算范围内.类似地我们对后向变量定义
+\[D_t \defeq \sum_s\beta_t(s), 
+\quad \hat{\beta}_t(s)\defeq\frac{\beta_t(s)}{C_t}\]
+并在~\eqref{eq:10}~和~\eqref{eq:11}~的右侧以$\hat{\beta}$代$\beta$.
+为了计算最大似然误差，我们需要求目标标注概率的自然对数.利用缩放后的变量表达，形式非常简单：
 \[\ln{(p(\vl|\vx))} = \sum_{t=1}^T \ln{(C_t)}\]
 \subsection{最大似然训练}
+最大似然训练的目标是将训练集中所有正确分类的对数概率同时最大化.本文中，这意味着要最小化下面的目标函数：
 \begin{equation}
+	\label{eq:12}
 	O^{\textit{ML}}(S,\cN_w) = -\sum_{(\vx,\vz)\in S}\ln{(p(\vz|\vx))}
 \end{equation}
+为了使用梯度下降训练网络，我们需要对~\eqref{eq:12}~关于网络的输出求导.由于训练样本是互相独立的，我们可以分别考虑：
 \begin{equation}
+	\label{eq:13}
 	\frac{\partial O^{\textit{ML}}(\{(\vx,\vz)\},\cN_w)}{\partial y_k^t} = -\frac{\partial \ln{(p(\vz|\vx))}}{\partial y_k^t}
 \end{equation}
+下面我们说明如何利用~\ref{sec:forward-backward}~中的算法计算~\eqref{eq:13}.
 
+核心是，对标注$\vl$，给定$s$和$t$的前向和后向变量就是所有对应$\vl$、且在时刻$t$经过符号$s$的路径的概率之和.更准确地说，由~\eqref{eq:5}~和~\eqref{eq:9}~得：
 \[
 	\alpha_t(s)\beta_t(s)
-	\overset{\mathrm{def}}{=}
+	\defeq
 	\sum_{
 		\substack{
 			\pi\in\cB^{-1}(\vl):\\
@@ -252,13 +280,57 @@ CTC~网络中有一个~softmax~输出层\citep{bridle1990probabilistic}，该层
 	y_{\vl_s'}^t
 	\prod_{t=1}^T y_{\pi_t}^t.
 \]
+整理，将~\eqref{eq:2}~代入，得
+\[\frac{\alpha_t(s)\beta_t(s)}{y_{\vl_s'}^t} = 
+	\sum_{
+		\substack{
+			\pi\in\cB^{-1}(\vl):\\
+			\pi_t = \vl_s'
+		}
+	}
+	p(\pi|\vx).
+\]
+由~\eqref{eq:3}~可以看出，这就是全概率$p(\vl|\vx)$中，在时刻$t$经过$\vl_s'$的那些路径的贡献.因此，对任意$t$我们可以对$s$求和，得到：
+\begin{equation}
+	\label{eq:14}
+	p(\vl|\vx) = \sum_{s=1}^{|\vl'|}\frac{\alpha_t(s)\beta_t(s)}{y_{\vl_s'}^t}.
+\end{equation}
+为了对该式关于$y_k^t$求导，我们只需考虑在$t$时刻经过标签$k$的路径.注意到同一个标注$\vl$内同一标签（或空字符）可能重复数次，为此我们定义标签$k$出现位置的集合为$\textit{lab}(\vl, k) = \{s : \vl_s' = k\}$，它可能是空集.接着我们对~\ref{eq:14}~求导得：
+\begin{equation}
+	\label{eq:15}
+	\frac{\partial p(\vl|\vx)}{\partial y_k^t} = 
+	\frac{1}{{y_k^t}^2}
+	\sum_{s\in\textit{lab}(\vl, k)} \alpha_t(s)\beta_t(s).
+\end{equation}
+观察到
+\[\frac{\partial\ln{p(\vl|\vx)}}{\partial y_k^t} = \frac{1}{p(\vl|\vx)}\frac{\partial p(\vl|\vx)}{\partial y_k^t}\]
+我们可以令$\vl = \vz$，并将~\eqref{eq:8}~和~\eqref{eq:15}~代入~\eqref{eq:13}~，从而对目标函数求导.
+
+最后，为了将梯度沿~softmax~层反向传播，我们需要求出目标函数关于\textbf{未标准化的}(unnormalised)输出$u_k^t$的导数.
+
+如果使用~\ref{sec:forward-backward}~节的缩放，则得到：
+\begin{equation}
+	\label{eq:16}
+	\frac{\partial O^{\textit{ML}(\{(\vx,\vz)\},\cN_w)}}{\partial u_k^t} = 
+	y_k^t - \frac{1}{y_k^tZ_t}\sum_{s\in\textit{lab}(\vz,k)}\hat{\alpha}_t(s)\hat{\beta}_t(s)
+\end{equation}
+其中
+\[Z_t \defeq \sum_{s=1}^{|\vl'|}\frac{\hat{\alpha}_t(s)\hat{\beta}_t(s)}{y_{\vl_s'}^t}.\]
+\eqref{eq:16}~式是网络在训练过程中收到的“误差信号”（图~4）.
 \section{实验}
 \label{sec:experiments}
+我们将~CTC~与~HMM~和~HMM-RNN~混合式系统的表现在对~TIMIT~语音语料进行语音标注这一真实的时序分类问题上进行比较.更确切地说，任务是用音素序列在~TIMIT~测试集中标注话语，且标签错误率尽可能低（见~\ref{sec:ler}~节中的定义）.
 
 \subsection{数据}
 
 \subsection{实验设置}
+CTC~网络使用的是带有窥孔(peephole)和忘记门(forget gate)的扩展~BLSTM~结构\citep{gers2003learning}，每个前向和后向隐层中有$100$个记忆块，输入和输出单元采用$\tanh$激活函数，门采用的是值域为$[0,1]$的对数几率~sigmoid~函数.
 
+隐层和自身及输出层间是全连接的，此外还有来自输入层的全连接.输入层大小为$26$，softmax~输出层大小为$62$（$61$类音素加上空字符标签），共有$114662$个权重.
+
+训练通过时间反向传播和在线梯度下降(online gradient descent)完成（权重在每个训练示例后更新），使用$10^{-4}$的学习率，动量设为$0.9$.在学习每个样本前，将网络的激活值重置为$0$.对前缀搜索解码（\ref{sec:classifier}~节），空符号的概率阈值设置为$99.99$\%.权重以$[-0.1,0.1]$上的均匀分布初始化.在训练期间，加入了标准差为$0.6$的高斯噪声以提高泛化.
+
+基线~HMM~和混合式系统按\citep{graves2005bidirectional}的描述实现.
 \subsection{实验结果}
 表~1~中的结果表明，
 \section{讨论和未来工作方向}
