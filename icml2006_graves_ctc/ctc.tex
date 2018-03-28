@@ -22,7 +22,6 @@
 \newcommand{\theHalgorithm}{\arabic{algorithm}}
 
 \usepackage[accepted]{icml2017}
-\icmltitlerunning{Connectionist Temporal Classification}
 
 \usepackage{amsmath,amssymb,amsthm}
 \DeclareMathOperator*{\argmax}{arg\,max}
@@ -45,6 +44,8 @@
 
 \def\defeq{\overset{\mathrm{def}}{=}}
 
+\icmltitlerunning{Connectionist Temporal Classification}
+
 \begin{document} 
 
 \twocolumn[
@@ -60,11 +61,13 @@
 \icmlaffiliation{idsia}{Istituto Dalle Molle di Studi sull’Intelligenza Artificiale (IDSIA), Galleria 2, 6928 Manno-Lugano, Switzerland}
 \icmlaffiliation{tum}{Technische Universit\"at München (TUM), Boltzmannstr. 3, 85748 Garching, Munich, Germany}
 
-\icmlcorrespondingauthor{张远航}{me@caszhang.cn}
+\icmltranslator{张远航}{me@caszhang.cn}
 \icmlkeywords{CTC, sequence labelling}
 
 \vskip 0.3in
 ]
+
+\printAffiliationsAndNotice{}
 
 \begin{abstract} 
 现实生活中的许多序列学习任务涉及从含噪声、未切分的输入数据中产生序列的分类预测.例如，在语音识别当中，声学信号会被切分为字或更小的单元.作为强大的序列学习器，循环神经网络看起来似乎很适合这种任务，但它们需要已经切分好的训练数据，还需要后处理来将输出转变为标签序列，因此它们的应用场景目前为止还是比较有限的.本文提出一种新方法训练循环神经网络，直接对未标注的序列做分类，从而解决了以上两个问题.在~TIMIT~语音语料库上的实验证明它相较基准~HMM~模型和~HMM-RNN~混合模型都有优势.
@@ -286,7 +289,7 @@ CTC~网络中有一个~softmax~输出层\citep{bridle1990probabilistic}，该层
 \end{equation}
 下面我们说明如何利用~\ref{sec:forward-backward}~中的算法计算~\eqref{eq:13}.
 
-核心是，对标注$\vl$，给定$s$和$t$的前向和后向变量就是所有对应$\vl$、且在时刻$t$经过符号$s$的路径的概率之和.更准确地说，由~\eqref{eq:5}~和~\eqref{eq:9}~得：
+核心是，对标注$\vl$，给定符号$s$和时刻$t$，则此时的前向和后向变量之积就是所有对应$\vl$，且在$t$时刻经过$s$的路径的概率之和.更准确地说，由~\eqref{eq:5}~和~\eqref{eq:9}~得：
 \[
 	\alpha_t(s)\beta_t(s)
 	\defeq

@@ -429,15 +429,15 @@ International Conference on Machine Learning (ICML).  Do not distribute.}
 \fi
 }
 
-\newcommand{\icmlcorrespondingauthor}[2]{
+\newcommand{\icmltranslator}[2]{
 \ifdefined\isaccepted
- \ifdefined\icmlcorrespondingauthor@text
-   \g@addto@macro\icmlcorrespondingauthor@text{, #1 \textless{}#2\textgreater{}}
+ \ifdefined\icmltranslator@text
+   \g@addto@macro\icmltranslator@text{, #1 \textless{}#2\textgreater{}}
  \else
-   \gdef\icmlcorrespondingauthor@text{#1 \textless{}#2\textgreater{}}
+   \gdef\icmltranslator@text{#1 \textless{}#2\textgreater{}}
  \fi
 \else
-\gdef\icmlcorrespondingauthor@text{Anonymous Author \textless{}anon.email@domain.com\textgreater{}}
+\gdef\icmltranslator@text{Anonymous Author \textless{}anon.email@domain.com\textgreater{}}
 \fi
 }
 
@@ -454,8 +454,8 @@ International Conference on Machine Learning (ICML).  Do not distribute.}
 {\bf AUTHORERR: Missing \textbackslash{}icmlaffiliation.}
 \fi
 }.
-\ifdefined\icmlcorrespondingauthor@text
-Correspondence to: \icmlcorrespondingauthor@text.
+\ifdefined\icmltranslator@text
+Translated by: \icmltranslator@text.
 \else
 {\bf AUTHORERR: Missing \textbackslash{}icmlcorrespondingauthor.}
 \fi
@@ -636,8 +636,8 @@ Correspondence to: \icmlcorrespondingauthor@text.
           \centerline{{\small\sl #1.} {\small #2}} 
         \fi}
 
-\def\fnum@figure{Figure \thefigure}
-\def\fnum@table{Table \thetable}
+\def\fnum@figure{\textbf{图}~\thefigure}
+\def\fnum@table{\textbf{表}~\thetable}
 
 % Strut macros for skipping spaces above and below text in tables. 
 \def\abovestrut#1{\rule[0in]{0in}{#1}\ignorespaces}
