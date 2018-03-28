@@ -122,6 +122,12 @@ CTC~网络中有一个~softmax~输出层\citep{bridle1990probabilistic}，该层
 	\label{eq:3}
 	p(\vl|\vx) = \sum_{\pi\in\cB^{-1}(\vl)}p(\pi|\vx).
 \end{equation}
+\begin{figure*}
+	\label{fig:1}
+	\centering
+	\includegraphics[width=\textwidth]{fig/1}
+	\caption{\textbf{对一段语音信号进行逐帧分类和~CTC~网络分类}.带颜色的线代表对应于某时刻观察到某音素概率的输出激活值. CTC~网络只预测音素序列（通常是以一系列尖峰的形式，中间以空字符即空预测分隔），而逐帧分类的网络尝试将它们与人工切分的结果进行对齐（竖线）.即使音素预测正确（如`dh'），逐帧网络也会收到切分边界未对齐的误差信号.如果某个音素总出现在另一个音素旁（如闭合[closure] `dcl'和塞音[stop] `d'），那么~CTC~会把它们以一个双峰的形式一同预测出来.标注的选择可以（依照双峰）从~CTC~的输出直接读出，而逐帧网络的结果必须进行后处理才能使用.}
+\end{figure*}
 \subsection{构造分类器}
 \label{sec:classifier}
 有了上面的表述，分类器的输出就应该是输入序列的最概然标注：
@@ -138,6 +144,12 @@ CTC~网络中有一个~softmax~输出层\citep{bridle1990probabilistic}，该层
 最优路径解码的计算是平凡的，因为$\pi^*$不过是把每个时间步的最活跃输出拼接起来.然而这一方法并不一定能找到最概然标注.
 
 第二种方法（前缀搜索解码，prefix search decoding）依赖于这一事实：对~\ref{sec:forward-backward}~节的前向-后向算法加以修改，就能逐步扩展，高效计算出标注各前缀的概率（图~\ref{fig:2}）.
+\begin{figure}
+	\label{fig:2}
+	\centering
+	\includegraphics[width=0.5\columnwidth]{fig/2}
+	\caption{\textbf{在标签的字母表$\mathrm{X}, \mathrm{Y}$上进行前缀搜索解码}.每个结点要么扩展父结点的前缀，要么终结（`$\mathrm{e}$'）.上图中各扩展结点上的数值代表所有以该前缀开始的标注的全概率.终结结点上方的数值是在其父结点结束的标注对应的概率.每轮迭代时，扩展剩下的最概然前缀.当找到某个概率比余下的前缀都大的标注（这里是`$\mathrm{XY}$'）时终止搜索.}
+\end{figure}
 
 如果时间足够，前缀搜索解码总能找到最概然标注.然而算法所需扩展前缀的最大数目随输入序列的长度指数级增长.如果输出以较尖峰的方式分布在模(mode)附近，算法还是能在可接受的时间内结束的.不过对于本文中的实验，还需进一步增加启发式规则(heuristics)才能应用这一算法.
 % TODO:启发式-规则？函数？方法？
@@ -200,6 +212,12 @@ CTC~网络中有一个~softmax~输出层\citep{bridle1990probabilistic}，该层
 	\alpha_{t-1}(s) + \alpha_{t-1}(s-1).
 \end{equation}
 注意到$\alpha_t(s) = 0~\forall s<|\vl'|-2(T-t)-1$，因为这些变量对应于剩余时间步不够完成序列的那些状态（图~\ref{fig:3}~右上角无连接的圆圈）.此外，$\alpha_t(s) = 0 \forall s<1$.
+\begin{figure}
+	\label{fig:3}
+	\centering
+	\includegraphics[width=0.9\columnwidth]{fig/3}
+	\caption{\textbf{在标注`CAT'（猫）上应用前向-后向算法的图示}. 黑色的圆圈代表标签，白色的圆圈代表空符号.箭头代表允许的转移.前向变量沿箭头方向更新，后向变量逆着箭头方向更新.}
+\end{figure}
 
 这样，$\vl$的概率就是$\vl'$在时刻$T$结尾有空字符和无空字符的全概率.
 \begin{equation}
@@ -318,6 +336,12 @@ CTC~网络中有一个~softmax~输出层\citep{bridle1990probabilistic}，该层
 其中
 \[Z_t \defeq \sum_{s=1}^{|\vl'|}\frac{\hat{\alpha}_t(s)\hat{\beta}_t(s)}{y_{\vl_s'}^t}.\]
 \eqref{eq:16}~式是网络在训练过程中收到的“误差信号”（图~\ref{fig:4}）.
+\begin{figure}
+	\label{fig:4}
+	\centering
+	\includegraphics[width=\columnwidth]{fig/4}
+	\caption{\textbf{训练过程中，CTC~误差信号的变化}.左边一列展示了同一个序列在训练不同阶段的输出激活值（虚线是空符号的单元）；右边一列展示了相应的误差信号.横轴上方的误差会相应增加到输出激活值上，下方的会相应减少输出激活值.(a)开始时，网络具有较小的随机权重，误差只由目标序列确定.(b)网络开始作出预测，误差定位这些预测附近.(c)网络以高置信预测出正确的标注，误差几乎消失.}
+\end{figure}
 \section{实验}
 \label{sec:experiments}
 我们将~CTC~与~HMM~和~HMM-RNN~混合式系统的表现在对~TIMIT~语音语料进行语音标注这一真实的时序分类问题上进行比较.更确切地说，任务是用音素序列在~TIMIT~测试集中对语句(utterance)进行标注，且标签错误率尽可能低（见~\ref{sec:ler}~节中的定义）.
@@ -332,7 +356,7 @@ CTC~网络使用的是带有窥孔(peephole)和遗忘门(forget gate)的扩展~B
 
 训练以时间反向传播和在线梯度下降(online gradient descent)完成（权重在每个训练示例后更新），使用$10^{-4}$的学习率，动量设为$0.9$.在学习每个样本前，将网络的激活值重置为$0$.对前缀搜索解码（\ref{sec:classifier}~节），空符号的概率阈值设置为$99.99$\%.权重以$[-0.1,0.1]$上的均匀分布初始化.在训练期间，加入了标准差为$0.6$的高斯噪声以提高泛化.
 
-基线~HMM~和混合式系统按\citep{graves2005bidirectional}的描述实现.简单来说，基线~HMM~采用了上下文无关模型和含三个状态、自左向右的上下文相关模型，模型利用~HTK~工具包\footnote{\url{http://htk.eng.cam.ac.uk/}}进行训练和测试.观测概率用高斯混合模型建模.高斯分布的个数和插入损失(insertion penalty)经过选择，以取得任务上的最优性能.系统中不包含语言学信息，也不包含部分音素序列(partial phone sequence)，共计$90$多万个参数.
+基线~HMM~和混合式系统按\citep{graves2005framewise}的描述实现.简单来说，基线~HMM~采用了上下文无关模型和含三个状态、自左向右的上下文相关模型，模型利用~HTK~工具包\footnote{\url{http://htk.eng.cam.ac.uk/}}进行训练和测试.观测概率用高斯混合模型建模.高斯分布的个数和插入损失(insertion penalty)经过选择，以取得任务上的最优性能.系统中不包含语言学信息，也不包含部分音素序列(partial phone sequence)，共计$90$多万个参数.
 
 混合式系统中包含~HMM~和一个~BLSTM~网络，用基于~Viterbi~算法的强制对齐(forced alignment)进行训练\citep{robinson1994an}.对$61$个音素的单状态模型，其转移概率和先验概率的初始估计在训练集上用正确的转写结果得出.选择了可取得任务上最优性能的插入损失.
 
@@ -342,7 +366,22 @@ BLSTM~的架构和参数与~CTC~使用的基本相同，区别在于：（1）�
 
 注意，混合式系统上的最优结果是采用加权误差信号得到的. CTC不需要这样的启发式规则，因为它的目标函数只依赖于标签\textbf{序列}，而与其长度和切分无关.
 
-输入中的噪声对~CTC~的泛化影响比混合式系统要大，对~CTC~而言，最优的噪声水平要高一些.
+输入中的噪声对~CTC~的泛化影响比混合式系统要大，而对~CTC~而言，最优的噪声水平要高一些.
+\begin{table}
+	\centering
+	\caption{\textbf{TIMIT~上的标签错误率(LER)}. CTC~和混合式系统的结果是五次的均值$\pm$标准差.除误差加权~BLSTM/HMM~和~CTC（最优路径解码）外，差异均非常显著($p<0.01$).}
+	\label{table:1}
+	\begin{tabular}{ll}
+		\hline
+		系统            & LER \\ \hline
+		上下文无关~HMM      &  $38.85$\%   \\
+		上下文相关~HMM      &  $35.21$\%   \\
+		BLSTM/HMM     &  $33.84\pm 0.06$\%   \\
+		误差加权~BLSTM/HMM &  $31.57\pm 0.06$\%   \\
+		CTC（最优路径解码）   &  $31.47\pm 0.21$\%   \\
+		CTC（前缀搜索解码）   &  $30.51\pm 0.19$\%  \\ \hline
+	\end{tabular}
+\end{table}
 \section{讨论和未来工作方向}
 \label{sec:discussion}
 CTC~和其他时序分类器之间的一个关键区别是~CTC~并不显式切分其输入序列.这有几点好处，包括不再需要定位固有不明确的标签边界（如语音识别和手写体识别中），此外，如果有帮助的话允许将标签预测分组在一起（比如某几个标签经常一起出现时）.总之，如果只需要标签序列，为确定切分而进行建模便是一种浪费.
@@ -360,42 +399,6 @@ CTC~的另一个显著特征是它没有显式建模标签间的依赖关系.这
 
 \section*{致谢}
 感谢~Marcus Hutter~在数学方面的有益讨论.本研究得到了~SNF~基金~200021-111968/1及200020-107534/1~的支持.
-
-\begin{figure}
-	\label{fig:1}
-	\caption{\textbf{对一段语音信号进行逐帧分类和~CTC~网络分类}.带颜色的线代表对应于某时刻观察到某音素概率的输出激活值. CTC~网络只预测音素序列（通常是以一系列尖峰的形式，中间以空字符即空预测分隔），而逐帧分类的网络尝试将它们与人工切分的结果进行对齐（竖线）.即使音素预测正确（如`dh'），逐帧网络也会收到切分边界未对齐的误差信号.如果某个音素总出现在另一个音素旁（如闭合[closure] `dcl'和塞音[stop] `d'），那么~CTC~会把它们以一个双峰的形式一同预测出来.标注的选择可以（依照双峰）从~CTC~的输出直接读出，而逐帧网络的结果必须进行后处理才能使用.}
-\end{figure}
-
-\begin{figure}
-	\label{fig:2}
-	\caption{\textbf{在标签的字母表$\mathrm{X}, \mathrm{Y}$上进行前缀搜索解码}.每个结点要么扩展父结点的前缀，要么终结（`$\mathrm{e}$'）.上图中各扩展结点上的数值代表所有以该前缀开始的标注的全概率.终结结点上方的数值是在其父结点结束的标注对应的概率.每轮迭代时，扩展剩下的最概然前缀.当找到某个概率比余下的前缀都大的标注（这里是`$\mathrm{XY}$'）时终止搜索.}
-\end{figure}
-
-\begin{figure}
-	\label{fig:3}
-	\caption{\textbf{在标注`CAT'（猫）上应用前向-后向算法的图示}. 黑色的圆圈代表标签，白色的圆圈代表空符号.箭头代表允许的转移.前向变量沿箭头方向更新，后向变量逆着箭头方向更新.}
-\end{figure}
-
-\begin{figure}
-	\label{fig:4}
-	\caption{\textbf{训练过程中，CTC~误差信号的变化}.左边一列展示了同一个序列在训练不同阶段的输出激活值（虚线是空符号的单元）；右边一列展示了相应的误差信号.横轴上方的误差会相应增加到输出激活值上，下方的会相应减少输出激活值.(a)开始时，网络具有较小的随机权重，误差只由目标序列确定.(b)网络开始作出预测，误差定位这些预测附近.(c)网络以高置信预测出正确的标注，误差几乎消失.}
-\end{figure}
-
-\begin{table}
-	\centering
-	\caption{\textbf{TIMIT~上的标签错误率(LER)}. CTC~和混合式系统的结果是五次的均值$\pm$标准差.除误差加权~BLSTM/HMM~和~CTC（最优路径解码）外，差异均非常显著($p<0.01$).}
-	\label{table:1}
-	\begin{tabular}{ll}
-		\hline
-		系统            & LER \\ \hline
-		上下文无关~HMM      &  $38.85$\%   \\
-		上下文相关~HMM      &  $35.21$\%   \\
-		BLSTM/HMM     &  $33.84\pm 0.06$\%   \\
-		误差加权~BLSTM/HMM &  $31.57\pm 0.06$\%   \\
-		CTC（最优路径解码）   &  $31.47\pm 0.21$\%   \\
-		CTC（前缀搜索解码）   &  $30.51\pm 0.19$\%  \\ \hline
-	\end{tabular}
-\end{table}
 
 % TODO: 加引用
 \bibliography{cites}
