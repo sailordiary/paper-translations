@@ -1,7 +1,7 @@
 # Paper Translations
 A collection of translated papers.
 
-## Sequence-to-sequence models
+## Towards End-to-end Models
 - `icml2006_graves_ctc`
 
 **《联结主义时序分类:用循环递归网络分类未切分的序列数据》**
