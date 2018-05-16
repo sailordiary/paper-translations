@@ -4,7 +4,7 @@ A collection of translated papers.
 ## Towards End-to-end Models
 - `icml2006_graves_ctc` [[PDF]](https://github.com/sailordiary/paper-translations/releases/download/v0.1beta/ctc.pdf)
 
-**《联结主义时序分类:用循环递归网络分类未切分的序列数据》**
+**《联结主义时序分类:用循环神经网络分类未切分的序列数据》**
 
 提出了目前应用广泛的CTC loss.
 
