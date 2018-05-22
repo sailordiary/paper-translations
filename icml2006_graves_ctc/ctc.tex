@@ -120,7 +120,7 @@ CTC~网络中有一个~softmax~输出层\citep{bridle1990probabilistic}，该层
 
 \eqref{eq:2}~式中隐含的假设是，给定网络的内部状态，网络在不同时刻的输出间是相互条件独立的.这点是通过要求输出层到自身和网络均没有前馈连接(feedback connection)来保证的.
 
-下一步是定义一个多对一映射$\cB: L'^T\mapsto L^{\le T}$，其中$L^{\le T}$是所有可能标注构成的集合（例如，所有原始标签字母表$L$上不长于$T$的字符串）.为此，我们从路径中除去所有的空字符和重复的标签（例如，$\cB(a-ab-)=\cB(-aa--abb)=aab$）.直观上，这相当于只在网络不再预测无标签或预测的标签发生变化时输出一个新标签（见图~\ref{fig:1}~中~CTC~的输出）.最后，我们借助$\cB$，定义某给定标签$\vl\in L^{\le T}$的条件概率为其所有对应路径的概率之和：
+下一步是定义一个多对一映射$\cB: L'^T\mapsto L^{\le T}$，其中$L^{\le T}$是所有可能标注构成的集合（例如，原始的标签字母表$L$上所有不长于$T$的字符串）.为此，我们从路径中除去所有的空字符和重复的标签（例如，$\cB(a-ab-)=\cB(-aa--abb)=aab$）.直观上，这相当于只在网络不再预测无标签或预测的标签发生变化时输出一个新标签（见图~\ref{fig:1}~中~CTC~的输出）.最后，我们借助$\cB$，定义某给定标签$\vl\in L^{\le T}$的条件概率为其所有对应路径的概率之和：
 \begin{equation}
 	\label{eq:3}
 	p(\vl|\vx) = \sum_{\pi\in\cB^{-1}(\vl)}p(\pi|\vx).
@@ -214,7 +214,7 @@ CTC~网络中有一个~softmax~输出层\citep{bridle1990probabilistic}，该层
 	\defeq
 	\alpha_{t-1}(s) + \alpha_{t-1}(s-1).
 \end{equation}
-注意到$\alpha_t(s) = 0~\forall s<|\vl'|-2(T-t)-1$，因为这些变量对应于剩余时间步不够完成序列的那些状态（图~\ref{fig:3}~右上角无连接的圆圈）.此外，$\alpha_t(s) = 0 \forall s<1$.
+注意到$\alpha_t(s) = 0~\forall s<|\vl'|-2(T-t)-1$，因为这些变量对应于剩余时间步不够完成序列的那些状态（图~\ref{fig:3}~右上角无连接的圆圈）.此外，$\alpha_t(s) = 0~\forall s<1$.
 \begin{figure}
 	\label{fig:3}
 	\centering
@@ -351,7 +351,7 @@ CTC~网络中有一个~softmax~输出层\citep{bridle1990probabilistic}，该层
 
 公平起见，比较~CTC~和混合网络时使用了相同的~RNN~架构——双向长短期记忆模型(bidirectional Long Short-Term Memory, BLSTM; \citealp{graves2005bidirectional}). BLSTM综合了长短期记忆模型(Long Short-Term Memory, LSTM; \citealp{hochreiter1997long})能记忆长时信息和双向~RNN(bidirectional RNN, BRNN; \citealp{schuster1997bidirectional})能看到过去和未来上下文的优点.需要强调的是，可以使用其他任何合理的架构.我们选择~BLSTM~是因为我们在同样任务上使用标准~BRNN~和单向网络的结果相对较差.
 \subsection{数据}
-TIMIT~语料库中是录制的英语语音，提供要念的文稿给说话人.样本带有人工切分好的音标.词典(lexicon)中包含$61$个不同的音素(phoneme)，被分为训练集和测试集，分别包含$4620$和$1680$个语句.从训练用语句中随机选出$5$\%（$184$），在混合系统和~CTC~的实验中用作早终止(early stopping)所需的验证集.音频数据切为$10$ms长的帧，两帧之间重叠$5$ms，使用$26$个滤波器组信道(filter-bank channels)上的$12$个梅尔频率倒谱系数(Mel-Frequency Cepstrum Coefficients, MFCC).此外还使用了对数能量和各系数的一阶导数，这样对每帧得到一个$26$维的系数向量.我们在训练集上将系数逐一归一化，使总体分布遵循$0$均值$1$标准差.
+TIMIT~语料库中是录制的英语语音，说话人照着文稿朗读.样本带有人工切分好的音标.词典(lexicon)中包含$61$个不同的音素(phoneme)，被分为训练集和测试集，分别包含$4620$和$1680$个语句.从训练用语句中随机选出$5$\%（$184$），在混合系统和~CTC~的实验中用作早终止(early stopping)所需的验证集.音频数据切为$10$ms长的帧，两帧之间重叠$5$ms，使用$26$个滤波器组信道(filter-bank channels)上的$12$个梅尔频率倒谱系数(Mel-Frequency Cepstrum Coefficients, MFCC).此外还使用了对数能量和各系数的一阶导数，这样对每帧得到一个$26$维的系数向量.我们在训练集上将系数逐一归一化，使总体分布遵循$0$均值$1$标准差.
 \subsection{实验设置}
 CTC~网络使用的是带有窥孔(peephole)和遗忘门(forget gate)的扩展~BLSTM~结构\citep{gers2003learning}，每个前向和后向隐层中有$100$个记忆块，输入和输出单元采用$\tanh$激活函数，门采用的是值域为$[0,1]$的对数几率~sigmoid~函数.
 
